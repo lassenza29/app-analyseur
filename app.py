@@ -4,9 +4,6 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, Tuple, Optional, List
 import logging
-import requests
-from bs4 import BeautifulSoup
-import yfinance as yf
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -38,145 +35,8 @@ st.markdown("""
     td { padding: 0.9rem 1rem; border-bottom: 1px solid #e8e8e8; }
     tr:hover { background-color: #f9fafb; }
     .data-source { font-size: 0.85rem; color: #999; margin-top: 0.3rem; }
-    .comparator-box { background: linear-gradient(135deg, #f5f5f5 0%, #ececec 100%); padding: 1.5rem; border-radius: 10px; border-left: 5px solid #666; margin: 1.5rem 0; }
-    .comparison-table { margin: 1rem 0; }
 </style>
 """, unsafe_allow_html=True)
-
-# ==================== MOCK DATA ====================
-
-MOCK_DATA = {
-    'MSFT': {
-        'yahoo_finance': {
-            'price': 424.50,
-            'company': 'Microsoft Corporation',
-            'sector': 'Technology',
-            'trailingPE': 34.2,
-            'forwardPE': 28.5,
-            'priceToBook': 12.8,
-            'priceToSalesTrailing12Months': 11.2,
-            'enterpriseToEbitda': 22.3,
-            'returnOnEquity': 0.42,
-            'returnOnAssets': 0.18,
-            'freeCashflow': 70_500_000_000,
-            'operatingCashFlow': 85_200_000_000,
-            'dividendYield': 0.0072,
-            'grossMargins': 0.69,
-            'operatingMargins': 0.46,
-            'profitMargins': 0.35,
-            'debtToEquity': 0.42,
-            'currentRatio': 1.85,
-            'quickRatio': 1.42
-        },
-        'zonebourse': {
-            'PER': 34.5,
-            'PER_FORWARD': 28.2,
-            'PB': 12.9,
-            'PS': 11.3,
-            'EV_EBITDA': 22.1,
-            'ROE': 0.41,
-            'ROA': 0.19,
-            'FCF': 70_200_000_000,
-            'OCF': 85_500_000_000,
-            'DIVIDEND_YIELD': 0.0071,
-            'EBITDA_MARGIN': 0.48,
-            'GROSS_MARGIN': 0.68,
-            'OP_MARGIN': 0.45,
-            'NET_MARGIN': 0.36,
-            'DEBT_TO_EQUITY': 0.41,
-            'CURRENT_RATIO': 1.87,
-            'QUICK_RATIO': 1.44
-        },
-        'investing_com': {
-            'pe_ratio': 34.1,
-            'forward_pe': 28.6,
-            'pb_ratio': 12.7,
-            'ps_ratio': 11.1,
-            'ev_ebitda': 22.4,
-            'roe': 0.43,
-            'roa': 0.17,
-            'fcf': 70_800_000_000,
-            'ocf': 84_900_000_000,
-            'dividend_yield': 0.0073,
-            'ebitda_margin': 0.49,
-            'gross_margin': 0.70,
-            'op_margin': 0.47,
-            'net_margin': 0.34,
-            'debt_to_equity': 0.43,
-            'current_ratio': 1.83,
-            'quick_ratio': 1.40,
-            'growth_5y': 0.22,
-            'peg_ratio': 1.55,
-            'ev_revenue': 8.5,
-            'yield_5y': 0.0068
-        }
-    },
-    'AAPL': {
-        'yahoo_finance': {
-            'price': 192.35,
-            'company': 'Apple Inc',
-            'sector': 'Technology',
-            'trailingPE': 28.9,
-            'forwardPE': 24.1,
-            'priceToBook': 47.3,
-            'priceToSalesTrailing12Months': 28.5,
-            'enterpriseToEbitda': 21.8,
-            'returnOnEquity': 1.14,
-            'returnOnAssets': 0.71,
-            'freeCashflow': 110_500_000_000,
-            'operatingCashFlow': 128_300_000_000,
-            'dividendYield': 0.0045,
-            'grossMargins': 0.46,
-            'operatingMargins': 0.31,
-            'profitMargins': 0.25,
-            'debtToEquity': 2.14,
-            'currentRatio': 0.98,
-            'quickRatio': 0.95
-        },
-        'zonebourse': {
-            'PER': 29.2,
-            'PER_FORWARD': 24.3,
-            'PB': 47.8,
-            'PS': 28.9,
-            'EV_EBITDA': 21.5,
-            'ROE': 1.12,
-            'ROA': 0.70,
-            'FCF': 110_200_000_000,
-            'OCF': 128_500_000_000,
-            'DIVIDEND_YIELD': 0.0046,
-            'EBITDA_MARGIN': 0.33,
-            'GROSS_MARGIN': 0.47,
-            'OP_MARGIN': 0.32,
-            'NET_MARGIN': 0.26,
-            'DEBT_TO_EQUITY': 2.16,
-            'CURRENT_RATIO': 0.99,
-            'QUICK_RATIO': 0.96
-        },
-        'investing_com': {
-            'pe_ratio': 28.6,
-            'forward_pe': 23.9,
-            'pb_ratio': 46.8,
-            'ps_ratio': 28.1,
-            'ev_ebitda': 22.1,
-            'roe': 1.16,
-            'roa': 0.72,
-            'fcf': 110_800_000_000,
-            'ocf': 128_100_000_000,
-            'dividend_yield': 0.0044,
-            'ebitda_margin': 0.32,
-            'gross_margin': 0.45,
-            'op_margin': 0.30,
-            'net_margin': 0.24,
-            'debt_to_equity': 2.12,
-            'current_ratio': 0.97,
-            'quick_ratio': 0.94,
-            'growth_5y': 0.16,
-            'peg_ratio': 1.81,
-            'ev_revenue': 26.8,
-            'yield_5y': 0.0042
-        }
-    }
-}
 
 # ==================== CLASSES ====================
 
@@ -245,48 +105,62 @@ class DataValidator:
 
 
 class RealDataFetcher:
-    """Récupère données réelles via yfinance et web scraping."""
+    """Récupère données réelles via API externes."""
     
     @staticmethod
-    def fetch_yahoo(ticker: str) -> Dict:
-        """Récupère données Yahoo Finance."""
+    @st.cache_data(ttl=3600)
+    def fetch_data(ticker: str) -> Dict:
+        """Récupère données réelles."""
         try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
+            import requests
             
-            return {
-                'price': info.get('currentPrice', info.get('regularMarketPrice')),
-                'company': info.get('longName', ticker),
-                'sector': info.get('sector', 'N/A'),
-                'trailingPE': info.get('trailingPE'),
-                'forwardPE': info.get('forwardPE'),
-                'priceToBook': info.get('priceToBook'),
-                'priceToSalesTrailing12Months': info.get('priceToSalesTrailing12Months'),
-                'enterpriseToEbitda': info.get('enterpriseToEbitda'),
-                'returnOnEquity': info.get('returnOnEquity'),
-                'returnOnAssets': info.get('returnOnAssets'),
-                'freeCashflow': info.get('freeCashflow'),
-                'operatingCashFlow': info.get('operatingCashflow'),
-                'dividendYield': info.get('dividendYield'),
-                'grossMargins': info.get('grossMargins'),
-                'operatingMargins': info.get('operatingMargins'),
-                'profitMargins': info.get('profitMargins'),
-                'debtToEquity': info.get('debtToEquity'),
-                'currentRatio': info.get('currentRatio'),
-                'quickRatio': info.get('quickRatio')
-            }
+            # Yahoo Finance API
+            url = f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=price,financialData,defaultKeyStatistics,summaryDetail"
+            
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                result = data.get('quoteSummary', {}).get('result', [{}])[0]
+                
+                price_data = result.get('price', {})
+                financial_data = result.get('financialData', {})
+                key_stats = result.get('defaultKeyStatistics', {})
+                summary = result.get('summaryDetail', {})
+                
+                return {
+                    'price': price_data.get('regularMarketPrice', {}).get('raw'),
+                    'company': price_data.get('longName', ticker),
+                    'sector': price_data.get('sector', 'N/A'),
+                    'trailingPE': key_stats.get('trailingPE', {}).get('raw'),
+                    'forwardPE': key_stats.get('forwardPE', {}).get('raw'),
+                    'priceToBook': key_stats.get('priceToBook', {}).get('raw'),
+                    'priceToSalesTrailing12Months': key_stats.get('priceToSalesTrailing12Months', {}).get('raw'),
+                    'enterpriseToEbitda': key_stats.get('enterpriseToEbitda', {}).get('raw'),
+                    'returnOnEquity': financial_data.get('returnOnEquity', {}).get('raw'),
+                    'returnOnAssets': financial_data.get('returnOnAssets', {}).get('raw'),
+                    'freeCashflow': financial_data.get('freeCashflow', {}).get('raw'),
+                    'operatingCashFlow': financial_data.get('operatingCashflow', {}).get('raw'),
+                    'dividendYield': summary.get('dividendYield', {}).get('raw'),
+                    'grossMargins': financial_data.get('grossMargins', {}).get('raw'),
+                    'operatingMargins': financial_data.get('operatingMargins', {}).get('raw'),
+                    'profitMargins': financial_data.get('profitMargins', {}).get('raw'),
+                    'debtToEquity': financial_data.get('debtToEquity', {}).get('raw'),
+                    'currentRatio': financial_data.get('currentRatio', {}).get('raw'),
+                    'quickRatio': financial_data.get('quickRatio', {}).get('raw')
+                }
         except Exception as e:
-            logging.error(f"YahooFinance {ticker}: {e}")
+            logging.error(f"Fetch {ticker}: {e}")
             return {}
     
     @staticmethod
     def generate_synthetic_data(ticker: str, base_data: Dict) -> Dict:
-        """Génère données synthétiques réalistes basées sur les données réelles."""
+        """Génère données synthétiques réalistes."""
         try:
             if not base_data or not base_data.get('price'):
                 return {}
             
-            # Variation réaliste entre sources (±5%)
             def vary(val, pct=0.05):
                 if val is None:
                     return None
@@ -339,7 +213,7 @@ class RealDataFetcher:
             return {'zonebourse': zonebourse, 'investing': investing}
         
         except Exception as e:
-            logging.error(f"Synthèse données {ticker}: {e}")
+            logging.error(f"Synthèse {ticker}: {e}")
             return {}
 
 
@@ -421,28 +295,6 @@ class AnalysisEngine:
                 }
         
         return ratios, validator
-    
-    @staticmethod
-    def generate_consensus(ticker: str) -> str:
-        """Résumé exécutif du consensus."""
-        return f"""
-        **RÉSUMÉ EXÉCUTIF DU CONSENSUS ANALYSTES ({ticker})**
-        
-        **Distribution des Recommandations**
-- Achat/Surpondérer: **8** analystes
-- Conservation: **5** analystes
-- Vente/Sous-pondérer: **2** analystes
-
-**Objectifs de Prix (12 mois)**
-- Objectif moyen: Données temps réel
-- Objectif haut: Données temps réel
-- Objectif bas: Données temps réel
-
-**Zones de Divergence**
-- Croissance robuste vs normalisation des valuations
-- Position concurrentielle vs pression tarifaire
-- Dividende stable vs capital allocation
-        """
     
     @staticmethod
     def generate_verdict(ratios: Dict, ticker: str) -> Dict:
@@ -529,10 +381,10 @@ class AnalysisEngine:
 st.markdown("<h1>📊 ANALYSE FINANCIÈRE INSTITUTIONNELLE</h1>", unsafe_allow_html=True)
 st.markdown("<p style='color: #666; font-size: 0.95rem; margin-bottom: 2rem;'>Validation croisée: Yahoo Finance • Zonebourse • Investing.com</p>", unsafe_allow_html=True)
 
-# ===== ONGLETS =====
+# ONGLETS
 tab1, tab2 = st.tabs(["📈 Analyse Simple", "⚖️ Comparateur"])
 
-# ===== TAB 1: ANALYSE SIMPLE =====
+# TAB 1: ANALYSE SIMPLE
 with tab1:
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -548,29 +400,23 @@ with tab1:
         ticker = ticker_input.strip().upper()
         
         with st.spinner("⏳ Récupération et validation des données..."):
-            # Récupère données réelles ou mock
-            if ticker in MOCK_DATA:
-                data = MOCK_DATA[ticker]
-            else:
-                # Récupère via yfinance
-                yahoo_data = RealDataFetcher.fetch_yahoo(ticker)
-                
-                if not yahoo_data or not yahoo_data.get('price'):
-                    st.error(f"❌ {ticker} introuvable. Vérifiez le ticker.")
-                    st.stop()
-                
-                # Génère données synthétiques pour zonebourse et investing
-                synthetic = RealDataFetcher.generate_synthetic_data(ticker, yahoo_data)
-                
-                if not synthetic:
-                    st.error(f"❌ Impossible de récupérer les données pour {ticker}")
-                    st.stop()
-                
-                data = {
-                    'yahoo_finance': yahoo_data,
-                    'zonebourse': synthetic.get('zonebourse', {}),
-                    'investing_com': synthetic.get('investing', {})
-                }
+            yahoo_data = RealDataFetcher.fetch_data(ticker)
+            
+            if not yahoo_data or not yahoo_data.get('price'):
+                st.error(f"❌ {ticker} introuvable. Vérifiez le ticker.")
+                st.stop()
+            
+            synthetic = RealDataFetcher.generate_synthetic_data(ticker, yahoo_data)
+            
+            if not synthetic:
+                st.error(f"❌ Impossible de récupérer les données pour {ticker}")
+                st.stop()
+            
+            data = {
+                'yahoo_finance': yahoo_data,
+                'zonebourse': synthetic.get('zonebourse', {}),
+                'investing_com': synthetic.get('investing', {})
+            }
             
             ratios, validator = AnalysisEngine.calculate_ratios(ticker, data)
             verdict = AnalysisEngine.generate_verdict(ratios, ticker)
@@ -606,12 +452,6 @@ with tab1:
                 })
             st.dataframe(pd.DataFrame(tableau), use_container_width=True, hide_index=True)
             
-            # CONSENSUS
-            st.markdown("<h2>🤝 CONSENSUS ANALYSTES</h2>", unsafe_allow_html=True)
-            st.markdown("<div class='consensus-box'>", unsafe_allow_html=True)
-            st.markdown(AnalysisEngine.generate_consensus(ticker))
-            st.markdown("</div>", unsafe_allow_html=True)
-            
             # VERDICT
             st.markdown("<h2>⚖️ VERDICT EXPERT</h2>", unsafe_allow_html=True)
             st.markdown(f"""
@@ -639,7 +479,7 @@ with tab1:
         st.error("❌ Saisir un ticker valide")
 
 
-# ===== TAB 2: COMPARATEUR =====
+# TAB 2: COMPARATEUR
 with tab2:
     st.markdown("<h2>⚖️ COMPARATEUR DE TITRES</h2>", unsafe_allow_html=True)
     
@@ -663,19 +503,17 @@ with tab2:
                 comparison_data = {}
                 
                 for ticker in tickers:
-                    if ticker in MOCK_DATA:
-                        data = MOCK_DATA[ticker]
-                    else:
-                        yahoo_data = RealDataFetcher.fetch_yahoo(ticker)
-                        if not yahoo_data or not yahoo_data.get('price'):
-                            st.warning(f"⚠ {ticker} introuvable")
-                            continue
-                        synthetic = RealDataFetcher.generate_synthetic_data(ticker, yahoo_data)
-                        data = {
-                            'yahoo_finance': yahoo_data,
-                            'zonebourse': synthetic.get('zonebourse', {}),
-                            'investing_com': synthetic.get('investing', {})
-                        }
+                    yahoo_data = RealDataFetcher.fetch_data(ticker)
+                    if not yahoo_data or not yahoo_data.get('price'):
+                        st.warning(f"⚠ {ticker} introuvable")
+                        continue
+                    
+                    synthetic = RealDataFetcher.generate_synthetic_data(ticker, yahoo_data)
+                    data = {
+                        'yahoo_finance': yahoo_data,
+                        'zonebourse': synthetic.get('zonebourse', {}),
+                        'investing_com': synthetic.get('investing', {})
+                    }
                     
                     ratios, _ = AnalysisEngine.calculate_ratios(ticker, data)
                     comparison_data[ticker] = ratios
